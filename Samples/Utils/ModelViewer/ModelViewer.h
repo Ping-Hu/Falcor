@@ -52,9 +52,12 @@ private:
     void loadModelFromFile(const std::string& Filename);
     void resetCamera();
     void setModelUIElements();
+	void setModelUIElements(Model::SharedPtr pModel);
     void setModelString(bool isAfterCull, float LoadTime);
 
     Model::SharedPtr mpModel = nullptr;
+	std::vector<Model::SharedPtr> mpModels;
+	std::vector<std::string> fileList;
     ModelViewCameraController mModelViewCameraController;
     FirstPersonCameraController mFirstPersonCameraController;
     SixDoFCameraController m6DoFCameraController;

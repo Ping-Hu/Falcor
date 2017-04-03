@@ -84,26 +84,45 @@ void ModelViewer::setModelString(bool isAfterCull, float loadTime)
 
 void ModelViewer::loadModelFromFile(const std::string& filename)
 {
-    CpuTimer timer;
-    timer.update();
+	CpuTimer timer;
+	timer.update();
+	uint32_t flags = mCompressTextures ? Model::CompressTextures : 0;
+	flags |= mGenerateTangentSpace ? Model::GenerateTangentSpace : 0;
+	auto fboFormat = mpDefaultFBO->getColorTexture(0)->getFormat();
+	flags |= isSrgbFormat(fboFormat) ? 0 : Model::AssumeLinearSpaceTextures;
 
-    uint32_t flags = mCompressTextures ? Model::CompressTextures : 0;
-    flags |= mGenerateTangentSpace ? Model::GenerateTangentSpace : 0;
-    auto fboFormat = mpDefaultFBO->getColorTexture(0)->getFormat();
-    flags |= isSrgbFormat(fboFormat) ? 0 : Model::AssumeLinearSpaceTextures;
-    mpModel = Model::createFromFile(filename, flags);
+	bool find = false;
+	for (unsigned int i = 0; i < fileList.size(); i++)
+	{
+		if (fileList[i].compare(filename) == 0)
+		{
+			find = true;
+			break;
+		}
+	}
+    
+	if (find == false)
+	{
+		mpModel = Model::createFromFile(filename, flags);
+		if (mpModel == nullptr)
+		{
+			msgBox("Could not load model");
+			return;
+		}
+		fileList.push_back(filename);
+		mpModels.push_back(mpModel);
+		setModelUIElements(mpModel);
+		if (fileList.size() == 1)
+		{
+			resetCamera();
+		}
+		
 
-    if(mpModel == nullptr)
-    {
-        msgBox("Could not load model");
-        return;
-    }
-    setModelUIElements();
-    resetCamera();
-
-    float radius = mpModel->getRadius();
-    float lightHeight = Falcor::max(1.0f + radius, radius*1.25f);
-    mpPointLight->setWorldPosition(glm::vec3(0, lightHeight, 0));
+		float radius = mpModel->getRadius();
+		float lightHeight = Falcor::max(1.0f + radius, radius*1.25f);
+		mpPointLight->setWorldPosition(glm::vec3(0, lightHeight, 0));
+	}
+    
     timer.update();
 
     setModelString(false, timer.getElapsedTime());
@@ -216,6 +235,46 @@ void ModelViewer::setModelUIElements()
     mpGui->addFloatVar("Far Plane", &mFarZ, "Depth Range", minDepth, mpModel->getRadius() * 15, minDepth * 5);
 }
 
+void ModelViewer::setModelUIElements(Model::SharedPtr mpModel)
+{
+	bool bAnim = mpModel && mpModel->hasAnimations();
+	static const char* animateStr = "Animate";
+	static const char* activeAnimStr = "Active Animation";
+
+	if (bAnim)
+	{
+		mActiveAnimationID = sBindPoseAnimationID;
+
+		mpGui->addCheckBox(animateStr, &mAnimate);
+		Gui::dropdown_list list;
+		list.resize(mpModel->getAnimationsCount() + 1);
+		list[0].label = "Bind Pose";
+		list[0].value = sBindPoseAnimationID;
+
+		for (uint32_t i = 0; i < mpModel->getAnimationsCount(); i++)
+		{
+			list[i + 1].value = i;
+			list[i + 1].label = mpModel->getAnimationName(i);
+			if (list[i + 1].label.size() == 0)
+			{
+				list[i + 1].label = std::to_string(i);
+			}
+		}
+		mpGui->addDropdownWithCallback(activeAnimStr, list, SetActiveAnimationCB, GetActiveAnimationCB, this);
+	}
+	else
+	{
+		mpGui->removeVar(animateStr);
+		mpGui->removeVar(activeAnimStr);
+	}
+
+	mpGui->removeVar("Near Plane", "Depth Range");
+	mpGui->removeVar("Far Plane", "Depth Range");
+	const float minDepth = mpModel->getRadius() * 1 / 1000;
+	mpGui->addFloatVar("Near Plane", &mNearZ, "Depth Range", minDepth, mpModel->getRadius() * 15, minDepth * 5);
+	mpGui->addFloatVar("Far Plane", &mFarZ, "Depth Range", minDepth, mpModel->getRadius() * 15, minDepth * 5);
+}
+
 void ModelViewer::onLoad()
 {
     mpCamera = Camera::create();
@@ -305,7 +364,8 @@ void ModelViewer::onFrameRender()
 
         mpPerFrameCB->setVariable("gAmbient", mAmbientIntensity);
         mpRenderContext->setUniformBuffer(0, mpPerFrameCB);
-        ModelRenderer::render(mpRenderContext.get(), mpProgram.get(), mpModel, mpCamera.get());
+        //ModelRenderer::render(mpRenderContext.get(), mpProgram.get(), mpModel, mpCamera.get());
+		ModelRenderer::renderMultiModels(mpRenderContext.get(), mpProgram.get(), mpModels, mpCamera.get());
     }
 
     std::string Msg = getGlobalSampleMessage(true) + '\n' + mModelString;
@@ -373,7 +433,7 @@ void ModelViewer::resetCamera()
         m6DoFCameraController.setCameraSpeed(Radius*0.25f);
 
         mNearZ = std::max(0.1f, mpModel->getRadius() / 750.0f);
-        mFarZ = Radius * 10;
+        mFarZ = std::max(1000.0f, Radius * 10);
     }
 }
 

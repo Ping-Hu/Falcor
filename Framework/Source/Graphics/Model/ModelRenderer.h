@@ -49,6 +49,8 @@ namespace Falcor
         */
         static void render(RenderContext* pRenderContext, Program* pProgram, Model::SharedPtr pModel, Camera* pCamera, bool frustumCulling = true);
 
+		static void renderMultiModels(RenderContext* pRenderContext, Program* pProgram, std::vector<Model::SharedPtr> pModels, Camera* pCamera, bool frustumCulling = true);
+
     private:
 		static std::map<Model::SharedPtr, SceneRenderer::UniquePtr> sceneMap;
     };

@@ -45,4 +45,23 @@ namespace Falcor
         pSceneRenderer->setObjectCullState(frustumCulling);
         pSceneRenderer->renderScene(pRenderContext, pProgram, pCamera);
     }
+
+	void ModelRenderer::renderMultiModels(RenderContext* pRenderContext, Program* pProgram, std::vector<Model::SharedPtr> pModels, Camera* pCamera, bool frustumCulling)
+	{
+		auto it = sceneMap.find(pModels[pModels.size()-1]);
+		if (sceneMap.size() == 0 || it == sceneMap.end())
+		{
+			Scene::SharedPtr pScene = Scene::create();
+			for (unsigned int i = 0; i < pModels.size();i++)
+			{
+				Model::SharedPtr pModel = pModels[i];
+				uint32_t modelID = pScene->addModel(pModel, "", true);
+				it = sceneMap.emplace(pModel, SceneRenderer::create(pScene)).first;
+			}
+		}
+		
+		SceneRenderer* pSceneRenderer = it->second.get();
+		pSceneRenderer->setObjectCullState(frustumCulling);
+		pSceneRenderer->renderScene(pRenderContext, pProgram, pCamera);
+	}
 }

@@ -151,7 +151,7 @@ namespace Falcor
         const Material* mpLastMaterial = nullptr;
         bool mCullEnabled = true;
         bool mUnloadTexturesOnMaterialChange = false;
-        RenderMode mRenderMode = RenderMode::Mono;
+        RenderMode mRenderMode = RenderMode::Stereo;
         bool mCompileMaterialWithProgram = true;
     };
 }

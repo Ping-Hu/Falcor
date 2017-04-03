@@ -118,7 +118,8 @@ namespace Falcor
         const std::string& getModelFilename(uint32_t index) const { return mModels[index].Filename; }
 
         // Model instances
-        uint32_t getModelInstanceCount(uint32_t modelID) const { return (uint32_t)mModels[modelID].instances.size(); }
+        uint32_t getModelInstanceCount(uint32_t modelID) const { 
+			return (uint32_t)mModels[modelID].instances.size(); }
         const ModelInstance& getModelInstance(uint32_t modelID, uint32_t instanceID) const { return mModels[modelID].instances[instanceID]; }
         void setModelInstanceTranslation(uint32_t modelID, uint32_t instanceID, const glm::vec3& translation);
         void setModelInstanceRotation(uint32_t modelID, uint32_t instanceID, const glm::vec3& rotation);
@@ -233,7 +234,7 @@ namespace Falcor
         mutable float mRadius = -1.f;
         mutable glm::vec3 mCenter;
 
-        mutable bool        mDirty = true;
+        mutable bool mDirty = true;
 
         glm::vec3 mAmbientIntensity;
         uint32_t mActiveCameraID = 0;
